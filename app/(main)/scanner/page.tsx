@@ -27,6 +27,7 @@ export default function ScannerPage() {
   const [alreadyMember, setAlreadyMember] = useState(false)
   const [currentUser, setCurrentUser] = useState<string | null>(null)
   const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false)
+  const [requestSent, setRequestSent] = useState(false)
 
   const processedRef = useRef(false)
 
@@ -94,6 +95,13 @@ export default function ScannerPage() {
       }
       setGroupPreview(group2)
 
+      // Check QR code expiry
+      if (group2.invite_code_expires_at && new Date(group2.invite_code_expires_at) <= new Date()) {
+        setError('This QR code has expired. Ask the group admin for a new one.')
+        setIsLoadingPreview(false)
+        return
+      }
+
       // Get member count
       const { count } = await supabase
         .from('group_members')
@@ -118,6 +126,13 @@ export default function ScannerPage() {
     }
 
     setGroupPreview(group)
+
+    // Check QR code expiry
+    if (group.invite_code_expires_at && new Date(group.invite_code_expires_at) <= new Date()) {
+      setError('This QR code has expired. Ask the group admin for a new one.')
+      setIsLoadingPreview(false)
+      return
+    }
 
     // Get member count
     const { count } = await supabase
@@ -238,6 +253,68 @@ export default function ScannerPage() {
       return
     }
 
+    // Check member limit
+    const memberLimit = groupPreview.member_limit ?? 30
+    if (previewMembers >= memberLimit) {
+      setError(`This group is full (${memberLimit} member limit).`)
+      setIsJoining(false)
+      return
+    }
+
+    // Check join mode — if 'request', send a join request instead
+    if (groupPreview.join_mode === 'request') {
+      // Check if already requested
+      const { data: existingReq } = await (supabase.from('group_join_requests') as any)
+        .select('id, status')
+        .eq('group_id', groupPreview.id)
+        .eq('user_id', currentUser)
+        .maybeSingle()
+
+      if (existingReq) {
+        if (existingReq.status === 'pending') {
+          setError('You already have a pending request for this group.')
+        } else if (existingReq.status === 'rejected') {
+          setError('Your previous request was declined.')
+        } else {
+          // Accepted — shouldn't reach here, but handle gracefully
+          router.push(`/groups/${groupPreview.id}`)
+        }
+        setIsJoining(false)
+        return
+      }
+
+      // Create join request
+      const { error: reqError } = await (supabase.from('group_join_requests') as any).insert({
+        group_id: groupPreview.id,
+        user_id: currentUser,
+      })
+
+      if (reqError) {
+        setError('Failed to send join request. Try again.')
+        setIsJoining(false)
+        return
+      }
+
+      // Notify group admin
+      try {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', currentUser).single()
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            groupId: groupPreview.id,
+            type: 'join_request',
+            title: 'Join Request',
+            message: `${profile?.full_name || 'Someone'} wants to join ${groupPreview.name}`,
+          }),
+        })
+      } catch { /* silent */ }
+
+      setRequestSent(true)
+      setIsJoining(false)
+      return
+    }
+
     const { error } = await (supabase.from('group_members') as any).insert({
       group_id: groupPreview.id,
       user_id: currentUser,
@@ -263,6 +340,7 @@ export default function ScannerPage() {
     setError('')
     setAlreadyMember(false)
     setJoinSuccess(false)
+    setRequestSent(false)
     setCameraPermissionDenied(false)
     processedRef.current = false
 
@@ -421,6 +499,10 @@ export default function ScannerPage() {
               <div className="bg-primary/10 text-primary text-sm p-3 rounded-xl w-full text-center font-medium">
                 Joined successfully! Redirecting...
               </div>
+            ) : requestSent ? (
+              <div className="bg-primary/10 text-primary text-sm p-3 rounded-xl w-full text-center font-medium">
+                Request sent! The group admin will review it.
+              </div>
             ) : (
               <Button
                 fullWidth
@@ -428,7 +510,7 @@ export default function ScannerPage() {
                 onClick={handleJoinGroup}
                 isLoading={isJoining}
               >
-                {alreadyMember ? 'Open Group' : 'Join Group'}
+                {alreadyMember ? 'Open Group' : groupPreview.join_mode === 'request' ? 'Request to Join' : 'Join Group'}
               </Button>
             )}
           </div>

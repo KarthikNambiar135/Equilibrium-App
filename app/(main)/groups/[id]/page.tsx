@@ -60,6 +60,7 @@ import {
   QrCode,
   Download,
   Share2,
+  RefreshCw,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon'
@@ -70,7 +71,7 @@ import {
   getOptimalSettlements,
   getCheapestSettlements,
 } from '@/lib/utils/settlement'
-import { formatRelativeDate, EXPENSE_CATEGORIES, TRIP_CATEGORIES, formatCurrency } from '@/lib/utils/formatters'
+import { formatRelativeDate, EXPENSE_CATEGORIES, TRIP_CATEGORIES, formatCurrency, generateInviteCode } from '@/lib/utils/formatters'
 import type { Profile, Group, Settlement, SettlementSuggestion, ExpenseIssue } from '@/lib/types/database'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { getContributorText } from '@/lib/utils/text-picker-client'
@@ -144,6 +145,12 @@ export default function GroupDetailPage() {
   const [debtLimitInput, setDebtLimitInput] = useState('')
   const [debtLimitSaving, setDebtLimitSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  // Member limit & Join mode
+  const [memberLimit, setMemberLimit] = useState<number>(30)
+  const [memberLimitInput, setMemberLimitInput] = useState('30')
+  const [memberLimitSaving, setMemberLimitSaving] = useState(false)
+  const [joinMode, setJoinMode] = useState<'open' | 'request'>('open')
+  const [joinModeSaving, setJoinModeSaving] = useState(false)
   // Group edit state (owner only)
   const [editGroupName, setEditGroupName] = useState('')
   const [editGroupPersonality, setEditGroupPersonality] = useState<'chill' | 'formal' | 'roast'>('chill')
@@ -172,6 +179,7 @@ export default function GroupDetailPage() {
   const [showPastMembers, setShowPastMembers] = useState(false)
   // QR code modal
   const [showQrModal, setShowQrModal] = useState(false)
+  const [qrRefreshing, setQrRefreshing] = useState(false)
   // Scroll tracking for banner
   const [scrollY, setScrollY] = useState(0)
   const BANNER_HEIGHT = 280
@@ -704,7 +712,7 @@ export default function GroupDetailPage() {
     try {
       const { data } = await supabase
         .from('groups')
-        .select('debt_limit, trip_ended, name, personality, emoji')
+        .select('debt_limit, trip_ended, name, personality, emoji, member_limit, join_mode')
         .eq('id', id)
         .single()
       if (data) {
@@ -715,6 +723,9 @@ export default function GroupDetailPage() {
         setEditGroupPersonality(((data as any).personality as 'chill' | 'formal' | 'roast') || 'chill')
         setEditGroupImagePreview((data as any).emoji?.startsWith('http') ? (data as any).emoji : null)
         setEditGroupImageFile(null)
+        setMemberLimit((data as any).member_limit ?? 30)
+        setMemberLimitInput(String((data as any).member_limit ?? 30))
+        setJoinMode(((data as any).join_mode as 'open' | 'request') || 'open')
       }
     } catch { /* silent */ }
   }
@@ -756,6 +767,56 @@ export default function GroupDetailPage() {
       setShowGroupSettings(false)
     } catch { /* silent */ }
     setDebtLimitSaving(false)
+  }
+
+  async function saveMemberLimit() {
+    setMemberLimitSaving(true)
+    const val = Math.min(Math.max(parseInt(memberLimitInput) || 30, 2), 30)
+    try {
+      await (supabase.from('groups') as any)
+        .update({ member_limit: val })
+        .eq('id', id)
+      setMemberLimit(val)
+      setMemberLimitInput(String(val))
+    } catch { /* silent */ }
+    setMemberLimitSaving(false)
+  }
+
+  async function toggleJoinMode() {
+    setJoinModeSaving(true)
+    const newMode = joinMode === 'open' ? 'request' : 'open'
+    try {
+      await (supabase.from('groups') as any)
+        .update({ join_mode: newMode })
+        .eq('id', id)
+      setJoinMode(newMode)
+    } catch { /* silent */ }
+    setJoinModeSaving(false)
+  }
+
+  async function refreshInviteCode() {
+    if (!group) return
+    setQrRefreshing(true)
+    try {
+      const newCode = generateInviteCode()
+      const expiresAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
+      await (supabase.from('groups') as any)
+        .update({ invite_code: newCode, invite_code_expires_at: expiresAt })
+        .eq('id', id)
+      setGroup((prev: any) => prev ? { ...prev, invite_code: newCode, invite_code_expires_at: expiresAt } : prev)
+    } catch { /* silent */ }
+    setQrRefreshing(false)
+  }
+
+  async function openQrModal() {
+    // Auto-refresh if expired or no expiry set
+    const expiresAt = (group as any)?.invite_code_expires_at
+    if (!expiresAt || new Date(expiresAt) <= new Date()) {
+      setShowQrModal(true)
+      await refreshInviteCode()
+    } else {
+      setShowQrModal(true)
+    }
   }
 
   async function terminateGroup() {
@@ -1181,7 +1242,7 @@ export default function GroupDetailPage() {
                   {activeMembers.length} member{activeMembers.length !== 1 ? 's' : ''} · {group.personality}
                 </p>
               </div>
-              <button onClick={() => setShowQrModal(true)} className="h-9 w-9 rounded-xl bg-black/40 backdrop-blur-sm flex items-center justify-center shrink-0">
+              <button onClick={() => openQrModal()} className="h-9 w-9 rounded-xl bg-black/40 backdrop-blur-sm flex items-center justify-center shrink-0">
                 <QrCode className="h-4 w-4 text-white" />
               </button>
               <button onClick={copyInviteCode} className="h-9 w-9 rounded-xl bg-black/40 backdrop-blur-sm flex items-center justify-center shrink-0">
@@ -1237,7 +1298,7 @@ export default function GroupDetailPage() {
                 {activeMembers.length} member{activeMembers.length !== 1 ? 's' : ''}{pastMembers.length > 0 ? ` · ${pastMembers.length} left` : ''} · {group.personality}
               </p>
             </div>
-            <button onClick={() => setShowQrModal(true)} className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
+            <button onClick={() => openQrModal()} className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
               <QrCode className="h-4 w-4" />
             </button>
             <button onClick={copyInviteCode} className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
@@ -2416,7 +2477,14 @@ export default function GroupDetailPage() {
                           return (
                             <div key={split.user_id} className="flex items-center justify-between">
                               <p className="text-xs">{member?.full_name || 'Unknown'}{split.user_id === currentUser ? ' (You)' : ''}</p>
-                              <p className="text-xs font-semibold">{formatINR(split.amount)}</p>
+                              <div className="text-right">
+                                <p className="text-xs font-semibold">{formatINR(split.amount)}</p>
+                                {expense.original_currency && expense.original_currency !== 'INR' && expense.amount > 0 && (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {formatCurrency(Math.round(split.amount / expense.amount * expense.original_amount * 100) / 100, expense.original_currency)}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           )
                         })}
@@ -2765,6 +2833,62 @@ export default function GroupDetailPage() {
             </div>
           )}
 
+          {/* Member Limit */}
+          {!isTerminated && isOwner && (
+            <div className="pt-3 border-t border-border">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Member Limit</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Maximum members allowed in this group (2–30).
+              </p>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="number"
+                  min={2}
+                  max={30}
+                  value={memberLimitInput}
+                  onChange={(e) => setMemberLimitInput(e.target.value)}
+                  placeholder="30"
+                  className="flex-1 rounded-xl border border-border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <span className="text-xs text-muted-foreground">/ 30 max</span>
+              </div>
+              <Button fullWidth size="sm" onClick={saveMemberLimit} isLoading={memberLimitSaving}>
+                {memberLimit !== 30 ? 'Update' : 'Set'} Limit
+              </Button>
+              <p className="text-xs text-primary mt-2">Current: {memberLimit} members · {members.length} joined</p>
+            </div>
+          )}
+
+          {/* Join Mode Toggle */}
+          {!isTerminated && isOwner && (
+            <div className="pt-3 border-t border-border">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Join Mode</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{joinMode === 'open' ? 'Open Join' : 'Request to Join'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {joinMode === 'open'
+                      ? 'Anyone with the invite code can join directly'
+                      : 'New members must request and wait for approval'}
+                  </p>
+                </div>
+                <button
+                  onClick={toggleJoinMode}
+                  disabled={joinModeSaving}
+                  className="shrink-0"
+                >
+                  {joinModeSaving ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  ) : joinMode === 'request' ? (
+                    <ToggleRight className="h-8 w-8 text-primary" />
+                  ) : (
+                    <ToggleLeft className="h-8 w-8 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Trip Ended Toggle (trip mode only, creator only) */}
           {isTrip && isOwner && !isTerminated && (
             <div className="pt-3 border-t border-border">
@@ -2950,21 +3074,44 @@ export default function GroupDetailPage() {
       {/* ── QR Code Modal ── */}
       <Modal isOpen={showQrModal} onClose={() => setShowQrModal(false)} title="Group QR Code">
         <div className="flex flex-col items-center gap-5">
-          <div className="qr-modal-svg bg-white p-4 rounded-2xl">
-            <QRCodeSVG
-              value={`equilibrium://join/${group?.invite_code}`}
-              size={220}
-              level="H"
-              includeMargin={false}
-              bgColor="#ffffff"
-              fgColor="#000000"
-            />
-          </div>
+          {qrRefreshing ? (
+            <div className="bg-white p-4 rounded-2xl w-[252px] h-[252px] flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="qr-modal-svg bg-white p-4 rounded-2xl">
+              <QRCodeSVG
+                value={`equilibrium://join/${group?.invite_code}`}
+                size={220}
+                level="H"
+                includeMargin={false}
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
+            </div>
+          )}
           <div className="text-center space-y-1">
             <p className="text-base font-semibold">{group?.name}</p>
             <p className="text-xs text-muted-foreground">Scan this QR code to join the group</p>
             <p className="text-xs font-mono text-muted-foreground tracking-widest mt-2">{group?.invite_code}</p>
+            {(() => {
+              const expiresAt = (group as any)?.invite_code_expires_at
+              if (!expiresAt) return null
+              const diff = new Date(expiresAt).getTime() - Date.now()
+              if (diff <= 0) return <p className="text-[11px] text-red-400 mt-1">Code expired — refreshing…</p>
+              const hours = Math.floor(diff / 3600000)
+              const mins = Math.floor((diff % 3600000) / 60000)
+              return <p className="text-[11px] text-muted-foreground mt-1">Expires in {hours > 0 ? `${hours}h ` : ''}{mins}m</p>
+            })()}
           </div>
+          <button
+            onClick={() => refreshInviteCode()}
+            disabled={qrRefreshing}
+            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3 w-3 ${qrRefreshing ? 'animate-spin' : ''}`} />
+            Refresh Code
+          </button>
           <div className="flex gap-3 w-full">
             <Button
               fullWidth

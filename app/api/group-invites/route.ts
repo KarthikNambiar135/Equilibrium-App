@@ -214,6 +214,24 @@ export async function PATCH(request: NextRequest) {
     if (!invite) return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
 
     if (action === 'accept') {
+      // Check member limit before accepting
+      const { data: groupSettings } = await supabase
+        .from('groups')
+        .select('member_limit')
+        .eq('id', (invite as any).group_id)
+        .single()
+
+      const memberLimit = (groupSettings as any)?.member_limit ?? 30
+      const { count: memberCount } = await supabase
+        .from('group_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('group_id', (invite as any).group_id)
+        .is('left_at', null)
+
+      if ((memberCount || 0) >= memberLimit) {
+        return NextResponse.json({ error: `Group is full (${memberLimit} member limit)` }, { status: 400 })
+      }
+
       // Add to group
       const { error: addError } = await (supabase.from('group_members') as any).insert({
         group_id: (invite as any).group_id,

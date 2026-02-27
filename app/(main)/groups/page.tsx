@@ -6,8 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import EmptyState from '@/components/ui/EmptyState'
-import { Plus, Users, ChevronRight, ChevronDown, Ban, Plane, Home, LogOut, Search } from 'lucide-react'
+import { Plus, Users, ChevronRight, ChevronDown, Ban, Plane, Home, LogOut, Search, UserCheck, Loader2 } from 'lucide-react'
 import CategoryIcon from '@/components/ui/CategoryIcon'
+import Avatar from '@/components/ui/Avatar'
 import type { Group } from '@/lib/types/database'
 
 import VideoLoader from '@/components/ui/VideoLoader'
@@ -20,6 +21,8 @@ export default function GroupsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showPastGroups, setShowPastGroups] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [joinRequests, setJoinRequests] = useState<any[]>([])
+  const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadGroups() {
@@ -43,10 +46,34 @@ export default function GroupsPage() {
         setPastGroups(past)
       }
       setIsLoading(false)
+
+      // Load join requests (for admin groups)
+      try {
+        const res = await fetch('/api/group-requests')
+        if (res.ok) {
+          const data = await res.json()
+          setJoinRequests(data.requests || [])
+        }
+      } catch { /* silent */ }
     }
 
     loadGroups()
   }, [supabase])
+
+  async function handleJoinRequest(requestId: string, action: 'accept' | 'reject') {
+    setRequestActionLoading(requestId)
+    try {
+      const res = await fetch('/api/group-requests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action }),
+      })
+      if (res.ok) {
+        setJoinRequests(prev => prev.filter(r => r.id !== requestId))
+      }
+    } catch { /* silent */ }
+    setRequestActionLoading(null)
+  }
 
   if (isLoading) {
     return <VideoLoader />
@@ -91,6 +118,42 @@ export default function GroupsPage() {
         />
       ) : (
         <div className="flex flex-col gap-3">
+          {/* Join Requests (admin view) */}
+          {joinRequests.length > 0 && (
+            <>
+              <p className="text-xs font-medium text-primary uppercase tracking-wide flex items-center gap-1">
+                <UserCheck className="h-3 w-3" /> Join Requests ({joinRequests.length})
+              </p>
+              {joinRequests.map((req: any) => (
+                <Card key={req.id} padding="md" className="border-primary/20 bg-primary/5">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={req.profile?.full_name || '?'} imageUrl={req.profile?.avatar_url} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{req.profile?.full_name || 'Unknown'}</p>
+                      <p className="text-[11px] text-muted-foreground">wants to join <span className="font-medium text-foreground">{req.group?.name}</span></p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => handleJoinRequest(req.id, 'accept')}
+                        disabled={requestActionLoading === req.id}
+                        className="text-xs font-medium px-2.5 py-1 rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
+                      >
+                        {requestActionLoading === req.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Accept'}
+                      </button>
+                      <button
+                        onClick={() => handleJoinRequest(req.id, 'reject')}
+                        disabled={requestActionLoading === req.id}
+                        className="text-xs font-medium px-2.5 py-1 rounded-lg bg-muted text-muted-foreground disabled:opacity-50"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </>
+          )}
+
           {/* Active groups (not terminated) */}
           {groups.filter(g => g.is_active && !g.terminated_at && g.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 && (
             <>

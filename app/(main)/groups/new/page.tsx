@@ -174,6 +174,7 @@ function NewGroupContent() {
         mode,
         personality,
         invite_code: code,
+        invite_code_expires_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
         created_by: user.id,
       })
       .select()
@@ -249,6 +250,13 @@ function NewGroupContent() {
       return
     }
 
+    // Check if invite code is expired
+    if (targetGroup.invite_code_expires_at && new Date(targetGroup.invite_code_expires_at) <= new Date()) {
+      setJoinError('This invite code has expired. Ask the group admin for a new one.')
+      setIsJoining(false)
+      return
+    }
+
     // Check if already member
     const { data: existing } = await (supabase
       .from('group_members') as any)
@@ -259,6 +267,69 @@ function NewGroupContent() {
 
     if (existing) {
       router.push(`/groups/${targetGroup.id}`)
+      return
+    }
+
+    // Check member limit
+    const memberLimit = targetGroup.member_limit ?? 30
+    const { count: memberCount } = await supabase
+      .from('group_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('group_id', targetGroup.id)
+      .is('left_at', null)
+    if ((memberCount || 0) >= memberLimit) {
+      setJoinError(`This group is full (${memberLimit} member limit).`)
+      setIsJoining(false)
+      return
+    }
+
+    // Check join mode — if 'request', send a join request instead
+    if (targetGroup.join_mode === 'request') {
+      // Check existing request
+      const { data: existingReq } = await (supabase.from('group_join_requests') as any)
+        .select('id, status')
+        .eq('group_id', targetGroup.id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (existingReq) {
+        if (existingReq.status === 'pending') {
+          setJoinError('You already have a pending request for this group.')
+        } else if (existingReq.status === 'rejected') {
+          setJoinError('Your previous request was declined.')
+        }
+        setIsJoining(false)
+        return
+      }
+
+      const { error: reqError } = await (supabase.from('group_join_requests') as any).insert({
+        group_id: targetGroup.id,
+        user_id: user.id,
+      })
+
+      if (reqError) {
+        setJoinError('Failed to send join request. Try again.')
+        setIsJoining(false)
+        return
+      }
+
+      // Notify group admin
+      try {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            groupId: targetGroup.id,
+            type: 'join_request',
+            title: 'Join Request',
+            message: `${profile?.full_name || 'Someone'} wants to join ${targetGroup.name}`,
+          }),
+        })
+      } catch { /* silent */ }
+
+      setJoinError('Request sent! The group admin will review it.')
+      setIsJoining(false)
       return
     }
 
