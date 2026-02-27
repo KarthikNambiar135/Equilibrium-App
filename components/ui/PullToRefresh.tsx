@@ -115,11 +115,10 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
       {/* ── Page content slides down while pulling ── */}
       <div
         style={{
-          transform: `translateY(${pullY}px)`,
+          transform: pullY > 0 ? `translateY(${pullY}px)` : undefined,
           transition: isReleasing || isRefreshing
             ? 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             : 'none',
-          willChange: 'transform',
         }}
       >
         {children}
