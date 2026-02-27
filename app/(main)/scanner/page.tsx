@@ -67,6 +67,8 @@ export default function ScannerPage() {
     setIsLoadingPreview(true)
     setError('')
     setAlreadyMember(false)
+    setIsPastMember(false)
+    setPastMembershipId(null)
 
     // Stop scanner
     try {
@@ -267,6 +269,23 @@ export default function ScannerPage() {
       return
     }
 
+    // Past member — rejoin by clearing left_at (skip member limit & join mode checks)
+    if (isPastMember && pastMembershipId) {
+      const { error: rejoinError } = await (supabase.from('group_members') as any)
+        .update({ left_at: null })
+        .eq('id', pastMembershipId)
+      if (rejoinError) {
+        setError('Failed to rejoin group. Try again.')
+        setIsJoining(false)
+        return
+      }
+      setJoinSuccess(true)
+      setTimeout(() => {
+        router.push(`/groups/${groupPreview.id}`)
+      }, 800)
+      return
+    }
+
     // Check member limit
     const memberLimit = groupPreview.member_limit ?? 30
     if (previewMembers >= memberLimit) {
@@ -326,23 +345,6 @@ export default function ScannerPage() {
 
       setRequestSent(true)
       setIsJoining(false)
-      return
-    }
-
-    // Check if past member — rejoin by clearing left_at
-    if (isPastMember && pastMembershipId) {
-      const { error: rejoinError } = await (supabase.from('group_members') as any)
-        .update({ left_at: null })
-        .eq('id', pastMembershipId)
-      if (rejoinError) {
-        setError('Failed to rejoin group. Try again.')
-        setIsJoining(false)
-        return
-      }
-      setJoinSuccess(true)
-      setTimeout(() => {
-        router.push(`/groups/${groupPreview.id}`)
-      }, 800)
       return
     }
 
