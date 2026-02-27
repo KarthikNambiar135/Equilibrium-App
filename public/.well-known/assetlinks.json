@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.equilibrium.app",
+      "sha256_cert_fingerprints": [
+        "4F:95:BF:08:E1:F9:37:CA:08:55:F3:3A:C2:70:90:8F:34:FE:3C:9B:D4:74:8F:6A:07:73:F1:04:02:BD:E4:1A"
+      ]
+    }
+  }
+]
