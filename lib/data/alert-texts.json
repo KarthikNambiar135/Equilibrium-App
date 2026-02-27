@@ -1,0 +1,240 @@
+{
+  "expense_added": {
+    "chill": [
+      "💸 {payer} added \"{title}\" for ₹{amount} in {group}",
+      "🧾 New expense! {payer} paid ₹{amount} for \"{title}\" in {group}",
+      "📝 {payer} just dropped ₹{amount} on \"{title}\" — {group}"
+    ],
+    "formal": [
+      "New expense recorded: {payer} paid ₹{amount} for \"{title}\" in {group}",
+      "Expense notification: \"{title}\" (₹{amount}) added by {payer} in {group}",
+      "A new expense of ₹{amount} has been added to {group} by {payer}"
+    ],
+    "roast": [
+      "💸 {payer} blew ₹{amount} on \"{title}\" in {group}. RIP wallet 💀",
+      "🚨 {payer} just spent ₹{amount} on \"{title}\". Ye kya kharcha hai bhai!",
+      "😭 {payer} dropped ₹{amount} on \"{title}\" in {group}. Paisa ki koi value?"
+    ]
+  },
+  "settlement_created": {
+    "chill": [
+      "💰 {from} needs to pay ₹{amount} to {to} in {group}",
+      "🤝 Settlement created: {from} → ₹{amount} → {to} in {group}",
+      "📱 Time to pay up! {from} owes ₹{amount} to {to} ({group})"
+    ],
+    "formal": [
+      "Settlement created: {from} owes ₹{amount} to {to} in {group}",
+      "New settlement of ₹{amount} from {from} to {to} has been initiated",
+      "Payment pending: {from} to pay ₹{amount} to {to} in {group}"
+    ],
+    "roast": [
+      "💰 Aye {from}! ₹{amount} nikal {to} ke liye in {group} 😤",
+      "🏧 {from}, ATM ban ja — ₹{amount} de {to} ko. {group} waale dekh rahe 👀",
+      "😤 {from}! ₹{amount} ka bill aaya hai {to} ka. Pay up or shut up"
+    ]
+  },
+  "settlement_completed": {
+    "chill": [
+      "✅ {from} paid ₹{amount} to {to}! One less debt in {group} 🎉",
+      "🎯 {from} cleared ₹{amount} with {to}. Good vibes only ✨",
+      "💚 ₹{amount} settled! {from} → {to} in {group}. Clean slate!"
+    ],
+    "formal": [
+      "Settlement completed: {from} has paid ₹{amount} to {to} in {group}",
+      "Payment confirmed: ₹{amount} from {from} to {to} has been settled",
+      "✅ Settlement of ₹{amount} between {from} and {to} is now complete"
+    ],
+    "roast": [
+      "😱 {from} actually paid ₹{amount}?! {to} check your UPI this is historic 🏆",
+      "🎊 A MIRACLE! {from} settled ₹{amount} with {to}. Someone screenshot this 📸",
+      "✅ {from} paid {to} ₹{amount}. Mark this day in history 📅"
+    ]
+  },
+  "group_added": {
+    "chill": [
+      "👥 {inviter} added you to \"{group}\"! Join the fun 🎉",
+      "🎊 Welcome to \"{group}\"! {inviter} brought you in",
+      "✨ You're now in \"{group}\" — {inviter} added you!"
+    ],
+    "formal": [
+      "You have been added to the group \"{group}\" by {inviter}",
+      "{inviter} has added you to \"{group}\". You can now view shared expenses.",
+      "Group membership: You were added to \"{group}\" by {inviter}"
+    ],
+    "roast": [
+      "😈 {inviter} dragged you into \"{group}\". Good luck with the bills 💀",
+      "🚪 Welcome to \"{group}\" courtesy of {inviter}. Your wallet won't thank you 😂",
+      "🤡 {inviter} added you to \"{group}\". Prepare your UPI bro"
+    ]
+  },
+  "group_invite": {
+    "chill": [
+      "📩 {inviter} invited you to join \"{group}\"!",
+      "🤝 {inviter} wants you in \"{group}\" — accept the invite!",
+      "✨ You got an invite from {inviter} for \"{group}\"!"
+    ],
+    "formal": [
+      "Group invitation: {inviter} has invited you to join \"{group}\"",
+      "You have received an invitation from {inviter} to join \"{group}\"",
+      "{inviter} would like you to join the group \"{group}\""
+    ],
+    "roast": [
+      "😏 {inviter} thinks you should suffer with them in \"{group}\"",
+      "🎪 {inviter} invited you to \"{group}\". Your wallet is shaking 💸",
+      "📩 {inviter} wants you in \"{group}\". Another group, another expense 😭"
+    ]
+  },
+  "friend_request": {
+    "chill": [
+      "👋 {from} wants to be your friend! Accept the request?",
+      "🤝 Hey! {from} sent you a friend request",
+      "✨ {from} wants to connect with you on Equilibrium!"
+    ],
+    "formal": [
+      "Friend request received from {from}",
+      "{from} has sent you a friend request. View your pending requests.",
+      "You have a new friend request from {from}"
+    ],
+    "roast": [
+      "😏 {from} wants to be friends. Probably just wants to split bills with you 💸",
+      "👀 {from} sent a friend request. Another person to owe money to!",
+      "🫣 {from} wants to be friends. Your wallet is already crying"
+    ]
+  },
+  "friend_accepted": {
+    "chill": [
+      "🎉 {from} accepted your friend request! You're friends now",
+      "🤝 {from} and you are now friends! Start splitting expenses",
+      "✨ {from} accepted! Add them to a group to get started"
+    ],
+    "formal": [
+      "{from} has accepted your friend request",
+      "Friend request accepted: You and {from} are now connected",
+      "Your friend request to {from} has been accepted"
+    ],
+    "roast": [
+      "🎊 {from} actually accepted your request. Shocking! 😱",
+      "😂 {from} wants to deal with your expenses. Bold move",
+      "🤷 {from} accepted. Now they can watch you spend irresponsibly"
+    ]
+  },
+  "group_joined": {
+    "chill": [
+      "🎉 {member} just joined \"{group}\"! Welcome aboard",
+      "👥 {member} is now part of \"{group}\"",
+      "✨ {member} joined the squad in \"{group}\"!"
+    ],
+    "formal": [
+      "{member} has joined the group \"{group}\"",
+      "New member: {member} is now part of \"{group}\"",
+      "Group update: {member} has been added to \"{group}\""
+    ],
+    "roast": [
+      "😈 {member} joined \"{group}\". Another wallet to drain 💀",
+      "🚶 {member} walked into \"{group}\". Bold of them tbh 😂",
+      "🤡 {member} joined \"{group}\". Fresh meat for expense splitting"
+    ]
+  },
+  "group_left": {
+    "chill": [
+      "👋 {member} left \"{group}\". They'll be missed!",
+      "😢 {member} has left \"{group}\"",
+      "🚶 {member} said goodbye to \"{group}\""
+    ],
+    "formal": [
+      "{member} has left the group \"{group}\"",
+      "Group update: {member} is no longer a member of \"{group}\"",
+      "{member} has exited the group \"{group}\""
+    ],
+    "roast": [
+      "🏃 {member} ran away from \"{group}\". Can't handle the expenses? 😂",
+      "💨 {member} vanished from \"{group}\". Good riddance! 💀",
+      "👋 {member} dipped from \"{group}\". Couldn't take the heat 🔥"
+    ]
+  },
+  "group_terminated": {
+    "chill": [
+      "🔒 \"{group}\" has been terminated by {owner}",
+      "📛 \"{group}\" is now closed. All expenses are frozen.",
+      "🚫 {owner} has ended \"{group}\". It's been a ride!"
+    ],
+    "formal": [
+      "Group \"{group}\" has been terminated by {owner}",
+      "Notice: \"{group}\" has been permanently closed by the owner",
+      "The group \"{group}\" has been terminated. No further transactions are allowed."
+    ],
+    "roast": [
+      "💀 {owner} killed \"{group}\". It's dead. Gone. Finished.",
+      "⚰️ RIP \"{group}\". {owner} pulled the plug 🔌",
+      "🪦 {owner} terminated \"{group}\". Press F to pay respects"
+    ]
+  },
+  "issue_raised": {
+    "chill": [
+      "⚠️ {raiser} raised an issue on \"{expense}\": {description}",
+      "🔍 {raiser} flagged \"{expense}\" — something seems off",
+      "❓ {raiser} has a concern about \"{expense}\""
+    ],
+    "formal": [
+      "Issue raised by {raiser} on expense \"{expense}\": {description}",
+      "Expense dispute: {raiser} flagged \"{expense}\" for review",
+      "A concern has been raised by {raiser} regarding \"{expense}\""
+    ],
+    "roast": [
+      "🚨 {raiser} is calling cap on \"{expense}\"! Drama incoming 🍿",
+      "😤 {raiser} flagged \"{expense}\". Someone's in trouble!",
+      "👀 {raiser} sus'd out \"{expense}\". Explain yourself!"
+    ]
+  },
+  "issue_resolved": {
+    "chill": [
+      "✅ Issue on \"{expense}\" has been resolved!",
+      "🎉 The issue on \"{expense}\" is sorted out now",
+      "👍 All good! Issue on \"{expense}\" resolved"
+    ],
+    "formal": [
+      "Issue resolved: The dispute on \"{expense}\" has been settled",
+      "The issue on expense \"{expense}\" has been marked as resolved",
+      "Dispute resolution: \"{expense}\" issue is now closed"
+    ],
+    "roast": [
+      "🕊️ Peace restored! Issue on \"{expense}\" resolved. No more drama.",
+      "✅ \"{expense}\" drama is over. Everyone chill now 😮‍💨",
+      "🙏 Finally! The \"{expense}\" issue is resolved. Took long enough"
+    ]
+  },
+  "settlement_reminder": {
+    "chill": [
+      "💸 Friendly reminder: You owe {creditor} ₹{amount} in \"{group}\"",
+      "🔔 Hey! ₹{amount} pending to {creditor} in \"{group}\". Clear it when you can!",
+      "⏰ Just a nudge — ₹{amount} due to {creditor} ({group})"
+    ],
+    "formal": [
+      "Payment reminder: ₹{amount} is due to {creditor} in \"{group}\"",
+      "Outstanding balance: You owe {creditor} ₹{amount} in group \"{group}\"",
+      "Reminder: A pending payment of ₹{amount} to {creditor} in \"{group}\" awaits settlement"
+    ],
+    "roast": [
+      "💀 Bro ₹{amount} is still pending to {creditor} in \"{group}\". PAY UP!",
+      "😤 {creditor} is WAITING for ₹{amount} in \"{group}\". Don't be that person!",
+      "🏧 ₹{amount} for {creditor} in \"{group}\" still pending. ATM se nikal ke de de bhai"
+    ]
+  },
+  "expense_deleted": {
+    "chill": [
+      "🗑️ {deleter} deleted the expense \"{expense}\" from \"{group}\"",
+      "❌ \"{expense}\" (₹{amount}) was removed from \"{group}\" by {deleter}",
+      "📝 Expense \"{expense}\" has been deleted from \"{group}\""
+    ],
+    "formal": [
+      "Expense deleted: \"{expense}\" (₹{amount}) removed from \"{group}\" by {deleter}",
+      "{deleter} has deleted the expense \"{expense}\" from group \"{group}\"",
+      "Notice: Expense \"{expense}\" (₹{amount}) has been removed from \"{group}\""
+    ],
+    "roast": [
+      "💀 {deleter} nuked \"{expense}\" from \"{group}\". It never happened 🤫",
+      "🗑️ {deleter} deleted \"{expense}\". What are they hiding? 👀",
+      "😂 \"{expense}\" in \"{group}\"? Never heard of it. {deleter} made it disappear"
+    ]
+  }
+}

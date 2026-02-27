@@ -1,0 +1,53 @@
+{
+  "chill": [
+    "🏆 {name} has covered {amount} — absolute legend of the group!",
+    "👑 {name} carries this group on their back with {amount} paid",
+    "💪 {name} dropped {amount} — backbone energy right there",
+    "🐐 {name} with {amount}… GOAT of the group no cap",
+    "🎯 Big spender alert: {name} at {amount} and counting",
+    "⭐ {name} = {amount} spent. This person is basically the group ATM",
+    "🫡 Respect to {name} for covering {amount} for the squad",
+    "🔥 {name} with the {amount} flex — group wouldn't survive without them",
+    "💸 {name} has splashed {amount}. Group's real MVP right here",
+    "🙌 Shoutout to {name} for {amount} — always holding it down",
+    "👊 {name} covered {amount}. That's the energy we love",
+    "💰 Nobody does it like {name} — {amount} and still going strong",
+    "🪙 {name} has put in {amount}. That's more than our rent tbh",
+    "🤝 {name} is the reason this group works — {amount} covered",
+    "🧾 Fun fact: {name} has paid {amount}. We don't deserve them"
+  ],
+  "formal": [
+    "📊 {name} has contributed {amount} — the top contributor in this group",
+    "💼 Leading contributor: {name} with {amount} in total expenses",
+    "📈 {name} has covered {amount}, the highest share in this group",
+    "🏅 Top payer: {name} with a total of {amount} paid",
+    "📋 {name} has shouldered {amount} of the group's expenses",
+    "✅ {name} leads with {amount} — the most significant contributor",
+    "📌 The primary expense bearer: {name} at {amount}",
+    "🔹 {name} has {amount} in total contributions to this group",
+    "📐 {name}: {amount} contributed — highest among all members",
+    "💎 Group's top financier: {name} with {amount} in total expenses",
+    "🗂️ {name} has managed {amount} in expenses for the group",
+    "📊 Data shows {name} at {amount} — the group's biggest contributor",
+    "🏦 {name}'s contributions total {amount} — leading the group",
+    "📝 Note: {name} has covered the most ({amount}) in this group",
+    "✨ {name}: {amount} total — the most generous contributor"
+  ],
+  "roast": [
+    "💀 {name} has blown {amount} on y'all. Everyone say thank you NOW",
+    "🤡 {name} at {amount}… bro your wallet is crying for help",
+    "🏧 {name} = walking ATM. {amount} spent and still going LOL",
+    "💸 {name} just threw {amount} at this group. Paisa hi paisa!",
+    "🔥 {name} with {amount} — bhai loan chahiye toh bol 😂",
+    "👻 {name}'s bank account after spending {amount} here: 💀",
+    "🎪 {name} paid {amount}… ye charity hai ya group?",
+    "🤑 {name} has donated {amount} to this group. Kitna paisa hai bhai?",
+    "💳 {name} at {amount}. Credit card bill se zyada toh yahan kharch kar diya",
+    "🚨 Alert: {name} has spent {amount}. Someone check on their savings 😭",
+    "🐐 {name} dropped {amount}. Ab baaki log bhi kuch karo pls 🙏",
+    "😤 {name}: {amount} paid. Y'all owe this person your lives tbh",
+    "💰 {name} = {amount}. Kitna ameer hai tu bhai?",
+    "🏋️ {name} carrying this group with {amount}. Everyone else = freeloaders",
+    "📢 PSA: {name} has paid {amount}. Rest of you — step up or shut up 🔇"
+  ]
+}
