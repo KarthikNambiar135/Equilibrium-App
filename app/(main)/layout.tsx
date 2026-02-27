@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/ui/BottomNav'
 import PullToRefresh from '@/components/ui/PullToRefresh'
-import { Loader2 } from 'lucide-react'
+import VideoLoader from '@/components/ui/VideoLoader'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -38,11 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [router, supabase])
 
   if (!isReady) {
-    return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    )
+    return <VideoLoader />
   }
 
   return (
