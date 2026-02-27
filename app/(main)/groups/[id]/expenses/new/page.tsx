@@ -44,6 +44,9 @@ export default function NewExpensePage() {
   const [debtLimit, setDebtLimit] = useState<number | null>(null)
   const [memberDebts, setMemberDebts] = useState<Map<string, number>>(new Map()) // userId -> how much they owe (positive = owes)
 
+  // Currency symbol helper
+  const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol || '₹'
+
   useEffect(() => {
     async function loadMembers() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -232,15 +235,18 @@ export default function NewExpensePage() {
       return
     }
 
-    // Create splits
-    const splits = Array.from(selectedMembers).map((userId) => ({
-      expense_id: (expense as any).id,
-      user_id: userId,
-      amount: getSplitAmount(userId),
-      percentage: splitType === 'percentage'
-        ? parseFloat(customSplits.get(userId) || '0')
-        : null,
-    }))
+    // Create splits (amounts must be in INR to match expense.amount)
+    const splits = Array.from(selectedMembers).map((userId) => {
+      const rawSplit = getSplitAmount(userId)
+      return {
+        expense_id: (expense as any).id,
+        user_id: userId,
+        amount: currency !== 'INR' ? convertToINR(rawSplit, currency) : rawSplit,
+        percentage: splitType === 'percentage'
+          ? parseFloat(customSplits.get(userId) || '0')
+          : null,
+      }
+    })
 
     const { error: splitError } = await (supabase
       .from('expense_splits') as any)
@@ -287,7 +293,7 @@ export default function NewExpensePage() {
     }
 
     // Try earning equipoints for large expenses
-    if (total >= 2000) {
+    if (amountInINR >= 2000) {
       try {
         await fetch('/api/equipoints', {
           method: 'POST',
@@ -305,7 +311,7 @@ export default function NewExpensePage() {
         body: JSON.stringify({
           groupId,
           title: title.trim(),
-          amount: total,
+          amount: amountInINR,
           splits: Array.from(selectedMembers),
         }),
       })
@@ -584,7 +590,7 @@ export default function NewExpensePage() {
               Split between
               {splitType === 'equal' && (
                 <span className="text-muted-foreground font-normal">
-                  {' '}— ₹{getPerPersonAmount().toLocaleString('en-IN')} each
+                  {' '}— {currencySymbol}{getPerPersonAmount().toLocaleString('en-IN')}{currency !== 'INR' ? ` (≈ ₹${convertToINR(getPerPersonAmount(), currency).toLocaleString('en-IN')})` : ''} each
                 </span>
               )}
             </p>
@@ -627,9 +633,14 @@ export default function NewExpensePage() {
                       </div>
 
                       {splitType === 'equal' && isSelected && (
-                        <p className="text-sm font-semibold text-primary">
-                          ₹{getPerPersonAmount().toLocaleString('en-IN')}
-                        </p>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-primary">
+                            {currencySymbol}{getPerPersonAmount().toLocaleString('en-IN')}
+                          </p>
+                          {currency !== 'INR' && (
+                            <p className="text-[10px] text-muted-foreground">≈ ₹{convertToINR(getPerPersonAmount(), currency).toLocaleString('en-IN')}</p>
+                          )}
+                        </div>
                       )}
 
                       {splitType === 'percentage' && isSelected && (
@@ -652,7 +663,7 @@ export default function NewExpensePage() {
 
                       {splitType === 'exact' && isSelected && (
                         <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground">₹</span>
+                          <span className="text-xs text-muted-foreground">{currencySymbol}</span>
                           <input
                             type="number"
                             inputMode="decimal"
@@ -689,14 +700,14 @@ export default function NewExpensePage() {
                   )}
                   {splitType === 'exact' && (
                     <p className={`text-xs ${isSplitValid() ? 'text-success' : 'text-muted-foreground'}`}>
-                      Total: ₹
+                      Total: {currencySymbol}
                       {Array.from(selectedMembers)
                         .reduce(
                           (sum, id) => sum + (parseFloat(customSplits.get(id) || '0')),
                           0
                         )
                         .toLocaleString('en-IN')}{' '}
-                      / ₹{parseFloat(amount).toLocaleString('en-IN')}
+                      / {currencySymbol}{parseFloat(amount).toLocaleString('en-IN')}
                     </p>
                   )}
                 </div>

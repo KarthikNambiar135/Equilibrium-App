@@ -7,7 +7,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Avatar from '@/components/ui/Avatar'
 import EmptyState from '@/components/ui/EmptyState'
-import { Bell, Check, CheckCheck, Trash2, ArrowRight, Loader2, Coins, HandshakeIcon, UserPlus, Mail, PartyPopper } from 'lucide-react'
+import { Bell, Check, CheckCheck, Trash2, ArrowRight, Loader2, Coins, HandshakeIcon, UserPlus, Mail, PartyPopper, UserCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Notification {
@@ -111,6 +111,7 @@ export default function NotificationsPage() {
       case 'friend_accepted': return <HandshakeIcon className="h-4 w-4 text-success" />
       case 'group_invite': return <Mail className="h-4 w-4 text-primary" />
       case 'group_added': return <PartyPopper className="h-4 w-4 text-success" />
+      case 'join_request': return <UserCheck className="h-4 w-4 text-primary" />
       default: return <Bell className="h-4 w-4 text-muted-foreground" />
     }
   }
@@ -177,6 +178,42 @@ export default function NotificationsPage() {
       setNotifications(prev => prev.map(n => 
         n.id === notifId ? { ...n, message: action === 'accept' ? 'Friend request accepted!' : 'Friend request declined', is_read: true } : n
       ))
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleJoinRequestAction(notifId: string, groupId: string, fromUserId: string, action: 'accept' | 'reject') {
+    setActionLoading(notifId)
+    try {
+      // Find pending join request for this user & group
+      const res = await fetch('/api/group-requests')
+      const data = await res.json()
+      const joinReq = data.requests?.find((r: any) => r.group_id === groupId && r.user_id === fromUserId)
+      if (!joinReq) {
+        await markRead(notifId)
+        setNotifications(prev => prev.map(n =>
+          n.id === notifId ? { ...n, message: 'Request already handled', is_read: true } : n
+        ))
+        return
+      }
+
+      const patchRes = await fetch('/api/group-requests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: joinReq.id, action }),
+      })
+
+      if (patchRes.ok) {
+        await markRead(notifId)
+        setNotifications(prev => prev.map(n =>
+          n.id === notifId ? {
+            ...n,
+            message: action === 'accept' ? 'Request accepted — member added!' : 'Request declined',
+            is_read: true,
+          } : n
+        ))
+      }
     } finally {
       setActionLoading(null)
     }
@@ -272,6 +309,26 @@ export default function NotificationsPage() {
                         </button>
                         <button
                           onClick={() => handleFriendRequestAction(notif.id, notif.from_user_id!, 'reject')}
+                          disabled={actionLoading === notif.id}
+                          className="text-xs font-medium px-3 py-1 rounded-lg bg-muted text-muted-foreground disabled:opacity-50"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Action buttons for join requests (admin view) */}
+                    {notif.type === 'join_request' && !notif.is_read && notif.group_id && notif.from_user_id && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => handleJoinRequestAction(notif.id, notif.group_id!, notif.from_user_id!, 'accept')}
+                          disabled={actionLoading === notif.id}
+                          className="text-xs font-medium px-3 py-1 rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
+                        >
+                          {actionLoading === notif.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Accept'}
+                        </button>
+                        <button
+                          onClick={() => handleJoinRequestAction(notif.id, notif.group_id!, notif.from_user_id!, 'reject')}
                           disabled={actionLoading === notif.id}
                           className="text-xs font-medium px-3 py-1 rounded-lg bg-muted text-muted-foreground disabled:opacity-50"
                         >

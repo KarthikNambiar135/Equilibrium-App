@@ -4,10 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.equilibrium.app',
   appName: 'Equilibrium',
   server: {
-    url: 'https://equilibrium-five.vercel.app',
+    url: 'https://equilibrium-app-three.vercel.app',
     cleartext: false,
     allowNavigation: [
-      'equilibrium-five.vercel.app',
+      'equilibrium-app-three.vercel.app',
       '*.supabase.co',
     ],
   },

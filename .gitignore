@@ -48,6 +48,13 @@ next-env.d.ts
 # sql migration files (run manually)
 supabase-migration*.sql
 
+# Signing keys
+*.jks
+*.keystore
+
+# Strategy doc (not for repo)
+COMMIT-STRATEGY.md
+
 # IDE
 .idea/
 .vscode/
