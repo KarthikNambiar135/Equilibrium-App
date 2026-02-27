@@ -75,16 +75,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You are not a member of this group' }, { status: 403 })
     }
 
-    // Check if friend is already a member
+    // Check if friend is already a member (active or past)
     const { data: existingMember } = await supabase
       .from('group_members')
-      .select('id')
+      .select('id, left_at')
       .eq('group_id', groupId)
       .eq('user_id', friendId)
       .maybeSingle()
 
     if (existingMember) {
-      return NextResponse.json({ error: 'Already a member' }, { status: 409 })
+      if (!(existingMember as any).left_at) {
+        return NextResponse.json({ error: 'Already a member' }, { status: 409 })
+      }
+      // Past member — rejoin by clearing left_at
+      await (supabase.from('group_members') as any)
+        .update({ left_at: null })
+        .eq('id', (existingMember as any).id)
+      return NextResponse.json({ success: true, rejoined: true })
     }
 
     if (action === 'add') {
@@ -232,14 +239,27 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: `Group is full (${memberLimit} member limit)` }, { status: 400 })
       }
 
-      // Add to group
-      const { error: addError } = await (supabase.from('group_members') as any).insert({
-        group_id: (invite as any).group_id,
-        user_id: user.id,
-        role: 'member',
-      })
+      // Add to group (check for past membership first)
+      const { data: pastMember } = await (supabase.from('group_members') as any)
+        .select('id, left_at')
+        .eq('group_id', (invite as any).group_id)
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-      if (addError) return NextResponse.json({ error: addError.message }, { status: 500 })
+      if (pastMember && pastMember.left_at) {
+        // Rejoin by clearing left_at
+        const { error: rejoinError } = await (supabase.from('group_members') as any)
+          .update({ left_at: null })
+          .eq('id', pastMember.id)
+        if (rejoinError) return NextResponse.json({ error: rejoinError.message }, { status: 500 })
+      } else if (!pastMember) {
+        const { error: addError } = await (supabase.from('group_members') as any).insert({
+          group_id: (invite as any).group_id,
+          user_id: user.id,
+          role: 'member',
+        })
+        if (addError) return NextResponse.json({ error: addError.message }, { status: 500 })
+      }
 
       // Update invite status
       await (supabase.from('group_invites') as any)

@@ -117,15 +117,26 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: `Group is full (${memberLimit} member limit)` }, { status: 400 })
       }
 
-      // Add to group
-      const { error: addError } = await (supabase.from('group_members') as any).insert({
-        group_id: joinReq.group_id,
-        user_id: joinReq.user_id,
-        role: 'member',
-      })
+      // Add to group (check for past membership first)
+      const { data: pastMember } = await (supabase.from('group_members') as any)
+        .select('id, left_at')
+        .eq('group_id', joinReq.group_id)
+        .eq('user_id', joinReq.user_id)
+        .maybeSingle()
 
-      if (addError) {
-        return NextResponse.json({ error: addError.message }, { status: 500 })
+      if (pastMember && pastMember.left_at) {
+        // Rejoin by clearing left_at
+        const { error: rejoinError } = await (supabase.from('group_members') as any)
+          .update({ left_at: null })
+          .eq('id', pastMember.id)
+        if (rejoinError) return NextResponse.json({ error: rejoinError.message }, { status: 500 })
+      } else if (!pastMember) {
+        const { error: addError } = await (supabase.from('group_members') as any).insert({
+          group_id: joinReq.group_id,
+          user_id: joinReq.user_id,
+          role: 'member',
+        })
+        if (addError) return NextResponse.json({ error: addError.message }, { status: 500 })
       }
 
       // Update request status
