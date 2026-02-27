@@ -382,9 +382,9 @@ export default function ScannerPage() {
   const isImage = groupEmoji?.startsWith('http')
 
   return (
-    <div className="min-h-dvh bg-black flex flex-col">
+    <div className="h-dvh overflow-hidden bg-black flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-14 pb-3 z-10">
+      <div className="flex items-center justify-between px-5 pt-14 pb-3 z-10 shrink-0">
         <button onClick={() => router.back()} className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center">
           <X className="h-5 w-5 text-white" />
         </button>
@@ -395,7 +395,7 @@ export default function ScannerPage() {
       </div>
 
       {/* Scanner viewport */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-8 overflow-hidden">
         <div className="relative w-full max-w-[300px] aspect-square">
           {/* Scanner container */}
           <div id="qr-reader" className={`w-full h-full rounded-2xl overflow-hidden [&>video]:object-cover ${isScanning ? '' : '[&>video]:opacity-0'}`} />
