@@ -1,15 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/ui/BottomNav'
+import PullToRefresh from '@/components/ui/PullToRefresh'
 import { Loader2 } from 'lucide-react'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
   const [isReady, setIsReady] = useState(false)
+
+  const isScanner = pathname === '/scanner'
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -42,8 +46,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh pb-24">
-      {children}
+    <div className={`min-h-dvh ${isScanner ? '' : 'pb-24'}`}>
+      {isScanner ? (
+        children
+      ) : (
+        <PullToRefresh>{children}</PullToRefresh>
+      )}
       <BottomNav />
     </div>
   )
