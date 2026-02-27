@@ -25,6 +25,8 @@ export default function ScannerPage() {
   const [error, setError] = useState('')
   const [joinSuccess, setJoinSuccess] = useState(false)
   const [alreadyMember, setAlreadyMember] = useState(false)
+  const [isPastMember, setIsPastMember] = useState(false)
+  const [pastMembershipId, setPastMembershipId] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<string | null>(null)
   const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false)
   const [requestSent, setRequestSent] = useState(false)
@@ -110,15 +112,21 @@ export default function ScannerPage() {
         .is('left_at', null)
       setPreviewMembers(count || 0)
 
-      // Check if already member
+      // Check if already member (active or past)
       if (currentUser) {
         const { data: existing } = await (supabase.from('group_members') as any)
-          .select('id')
+          .select('id, left_at')
           .eq('group_id', group2.id)
           .eq('user_id', currentUser)
-          .is('left_at', null)
           .maybeSingle()
-        if (existing) setAlreadyMember(true)
+        if (existing) {
+          if (!existing.left_at) {
+            setAlreadyMember(true)
+          } else {
+            setIsPastMember(true)
+            setPastMembershipId(existing.id)
+          }
+        }
       }
 
       setIsLoadingPreview(false)
@@ -142,15 +150,21 @@ export default function ScannerPage() {
       .is('left_at', null)
     setPreviewMembers(count || 0)
 
-    // Check if already member
+    // Check if already member (active or past)
     if (currentUser) {
       const { data: existing } = await (supabase.from('group_members') as any)
-        .select('id')
+        .select('id, left_at')
         .eq('group_id', group.id)
         .eq('user_id', currentUser)
-        .is('left_at', null)
         .maybeSingle()
-      if (existing) setAlreadyMember(true)
+      if (existing) {
+        if (!existing.left_at) {
+          setAlreadyMember(true)
+        } else {
+          setIsPastMember(true)
+          setPastMembershipId(existing.id)
+        }
+      }
     }
 
     setIsLoadingPreview(false)
@@ -315,6 +329,23 @@ export default function ScannerPage() {
       return
     }
 
+    // Check if past member — rejoin by clearing left_at
+    if (isPastMember && pastMembershipId) {
+      const { error: rejoinError } = await (supabase.from('group_members') as any)
+        .update({ left_at: null })
+        .eq('id', pastMembershipId)
+      if (rejoinError) {
+        setError('Failed to rejoin group. Try again.')
+        setIsJoining(false)
+        return
+      }
+      setJoinSuccess(true)
+      setTimeout(() => {
+        router.push(`/groups/${groupPreview.id}`)
+      }, 800)
+      return
+    }
+
     const { error } = await (supabase.from('group_members') as any).insert({
       group_id: groupPreview.id,
       user_id: currentUser,
@@ -338,6 +369,8 @@ export default function ScannerPage() {
     setScannedCode(null)
     setGroupPreview(null)
     setError('')
+    setIsPastMember(false)
+    setPastMembershipId(null)
     setAlreadyMember(false)
     setJoinSuccess(false)
     setRequestSent(false)
@@ -510,7 +543,7 @@ export default function ScannerPage() {
                 onClick={handleJoinGroup}
                 isLoading={isJoining}
               >
-                {alreadyMember ? 'Open Group' : groupPreview.join_mode === 'request' ? 'Request to Join' : 'Join Group'}
+                {alreadyMember ? 'Open Group' : isPastMember ? 'Rejoin Group' : groupPreview.join_mode === 'request' ? 'Request to Join' : 'Join Group'}
               </Button>
             )}
           </div>

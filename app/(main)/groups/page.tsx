@@ -20,7 +20,9 @@ export default function GroupsPage() {
   const [pastGroups, setPastGroups] = useState<(Group & { left_at: string })[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showPastGroups, setShowPastGroups] = useState(false)
+  const [showTerminated, setShowTerminated] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState<'groups' | 'requests'>('groups')
   const [joinRequests, setJoinRequests] = useState<any[]>([])
   const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null)
 
@@ -100,11 +102,79 @@ export default function GroupsPage() {
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-muted text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
+        {/* Tabs */}
+        <div className="flex gap-1 mt-2 bg-muted rounded-xl p-1">
+          <button
+            onClick={() => setActiveTab('groups')}
+            className={`flex-1 text-xs font-medium py-2 rounded-lg transition-colors ${
+              activeTab === 'groups' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            My Groups
+          </button>
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`flex-1 text-xs font-medium py-2 rounded-lg transition-colors relative ${
+              activeTab === 'requests' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            Requests
+            {joinRequests.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                {joinRequests.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="px-5">
 
-      {groups.length === 0 && pastGroups.length === 0 ? (
+      {activeTab === 'requests' ? (
+        /* ── Requests Tab ── */
+        joinRequests.length === 0 ? (
+          <EmptyState
+            icon={<UserCheck className="h-7 w-7" />}
+            title="No join requests"
+            description="When someone requests to join your groups, it will appear here"
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-medium text-primary uppercase tracking-wide flex items-center gap-1">
+              <UserCheck className="h-3 w-3" /> Pending Requests ({joinRequests.length})
+            </p>
+            {joinRequests.map((req: any) => (
+              <Card key={req.id} padding="md" className="border-primary/20 bg-primary/5">
+                <div className="flex items-center gap-3">
+                  <Avatar name={req.profile?.full_name || '?'} imageUrl={req.profile?.avatar_url} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{req.profile?.full_name || 'Unknown'}</p>
+                    <p className="text-[11px] text-muted-foreground">wants to join <span className="font-medium text-foreground">{req.group?.name}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleJoinRequest(req.id, 'accept')}
+                      disabled={requestActionLoading === req.id}
+                      className="text-xs font-medium px-2.5 py-1 rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
+                    >
+                      {requestActionLoading === req.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Accept'}
+                    </button>
+                    <button
+                      onClick={() => handleJoinRequest(req.id, 'reject')}
+                      disabled={requestActionLoading === req.id}
+                      className="text-xs font-medium px-2.5 py-1 rounded-lg bg-muted text-muted-foreground disabled:opacity-50"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )
+      ) : (
+      /* ── My Groups Tab ── */
+      groups.length === 0 && pastGroups.length === 0 ? (
         <EmptyState
           icon={<Users className="h-7 w-7" />}
           title="No groups yet"
@@ -118,40 +188,20 @@ export default function GroupsPage() {
         />
       ) : (
         <div className="flex flex-col gap-3">
-          {/* Join Requests (admin view) */}
+          {/* Join Requests banner (quick peek in groups tab) */}
           {joinRequests.length > 0 && (
-            <>
-              <p className="text-xs font-medium text-primary uppercase tracking-wide flex items-center gap-1">
-                <UserCheck className="h-3 w-3" /> Join Requests ({joinRequests.length})
-              </p>
-              {joinRequests.map((req: any) => (
-                <Card key={req.id} padding="md" className="border-primary/20 bg-primary/5">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={req.profile?.full_name || '?'} imageUrl={req.profile?.avatar_url} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{req.profile?.full_name || 'Unknown'}</p>
-                      <p className="text-[11px] text-muted-foreground">wants to join <span className="font-medium text-foreground">{req.group?.name}</span></p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() => handleJoinRequest(req.id, 'accept')}
-                        disabled={requestActionLoading === req.id}
-                        className="text-xs font-medium px-2.5 py-1 rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
-                      >
-                        {requestActionLoading === req.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Accept'}
-                      </button>
-                      <button
-                        onClick={() => handleJoinRequest(req.id, 'reject')}
-                        disabled={requestActionLoading === req.id}
-                        className="text-xs font-medium px-2.5 py-1 rounded-lg bg-muted text-muted-foreground disabled:opacity-50"
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </>
+            <button
+              onClick={() => setActiveTab('requests')}
+              className="w-full text-left"
+            >
+              <Card padding="sm" className="border-primary/20 bg-primary/5">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-primary" />
+                  <p className="text-xs font-medium text-primary">{joinRequests.length} pending join request{joinRequests.length !== 1 ? 's' : ''}</p>
+                  <ChevronRight className="h-3 w-3 text-primary ml-auto" />
+                </div>
+              </Card>
+            </button>
           )}
 
           {/* Active groups (not terminated) */}
@@ -193,13 +243,19 @@ export default function GroupsPage() {
             </>
           )}
 
-          {/* Terminated groups */}
+          {/* Terminated groups (collapsible) */}
           {groups.filter(g => !!g.terminated_at && g.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 && (
             <>
-              <p className="text-xs font-medium text-destructive uppercase tracking-wide mt-4 flex items-center gap-1">
-                <Ban className="h-3 w-3" /> Terminated
-              </p>
-              {groups
+              <button
+                onClick={() => setShowTerminated(!showTerminated)}
+                className="flex items-center gap-2 mt-4 px-1 py-1.5"
+              >
+                <ChevronDown className={`h-4 w-4 text-destructive/60 transition-transform ${showTerminated ? 'rotate-180' : ''}`} />
+                <p className="text-xs font-medium text-destructive uppercase tracking-wide flex items-center gap-1">
+                  <Ban className="h-3 w-3" /> Terminated ({groups.filter(g => !!g.terminated_at && g.name.toLowerCase().includes(searchQuery.toLowerCase())).length})
+                </p>
+              </button>
+              {showTerminated && groups
                 .filter((g) => !!g.terminated_at && g.name.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map((group) => (
                   <Card
@@ -262,6 +318,7 @@ export default function GroupsPage() {
               ))}
             </>
           )}        </div>
+      )
       )}
       </div>
     </div>
