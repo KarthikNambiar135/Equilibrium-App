@@ -204,7 +204,7 @@ export default function GroupsPage() {
             </button>
           )}
 
-          {/* Active groups (not terminated) */}}
+          {/* Active groups (not terminated) */}
           {groups.filter(g => g.is_active && !g.terminated_at && g.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 && (
             <>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
