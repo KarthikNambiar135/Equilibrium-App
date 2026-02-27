@@ -258,12 +258,16 @@ function NewGroupContent() {
     }
 
     // Check if already member (active or past)
-    const { data: existing } = await (supabase
+    const { data: existing, error: memberCheckErr } = await (supabase
       .from('group_members') as any)
       .select('id, left_at')
       .eq('group_id', targetGroup.id)
       .eq('user_id', user.id)
       .maybeSingle()
+
+    if (memberCheckErr) {
+      console.error('Membership check error:', memberCheckErr)
+    }
 
     if (existing) {
       if (!existing.left_at) {
@@ -276,6 +280,7 @@ function NewGroupContent() {
         .update({ left_at: null })
         .eq('id', existing.id)
       if (rejoinError) {
+        console.error('Rejoin error:', rejoinError)
         setJoinError('Failed to rejoin group. Try again.')
         setIsJoining(false)
         return

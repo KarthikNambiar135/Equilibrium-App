@@ -77,88 +77,63 @@ export default function ScannerPage() {
       }
     } catch {}
 
-    // Look up group
+    // Get the authenticated user directly (don't rely on currentUser state — it may not be set yet)
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const userId = authUser?.id || null
+    if (userId && !currentUser) setCurrentUser(userId)
+
+    // Look up group by invite code (try uppercase first, then original)
+    let foundGroup: any = null
     const { data: group } = await supabase
       .from('groups')
       .select('*')
       .eq('invite_code', inviteCode.toUpperCase())
       .maybeSingle()
 
-    if (!group) {
-      // Try without uppercase
+    if (group) {
+      foundGroup = group
+    } else {
       const { data: group2 } = await supabase
         .from('groups')
         .select('*')
         .eq('invite_code', inviteCode)
         .maybeSingle()
+      if (group2) foundGroup = group2
+    }
 
-      if (!group2) {
-        setError('Invalid QR code. No group found.')
-        setIsLoadingPreview(false)
-        return
-      }
-      setGroupPreview(group2)
-
-      // Check QR code expiry
-      if (group2.invite_code_expires_at && new Date(group2.invite_code_expires_at) <= new Date()) {
-        setError('This QR code has expired. Ask the group admin for a new one.')
-        setIsLoadingPreview(false)
-        return
-      }
-
-      // Get member count
-      const { count } = await supabase
-        .from('group_members')
-        .select('id', { count: 'exact', head: true })
-        .eq('group_id', group2.id)
-        .is('left_at', null)
-      setPreviewMembers(count || 0)
-
-      // Check if already member (active or past)
-      if (currentUser) {
-        const { data: existing } = await (supabase.from('group_members') as any)
-          .select('id, left_at')
-          .eq('group_id', group2.id)
-          .eq('user_id', currentUser)
-          .maybeSingle()
-        if (existing) {
-          if (!existing.left_at) {
-            setAlreadyMember(true)
-          } else {
-            setIsPastMember(true)
-            setPastMembershipId(existing.id)
-          }
-        }
-      }
-
+    if (!foundGroup) {
+      setError('Invalid QR code. No group found.')
       setIsLoadingPreview(false)
       return
     }
 
-    setGroupPreview(group)
+    setGroupPreview(foundGroup)
 
     // Check QR code expiry
-    if (group.invite_code_expires_at && new Date(group.invite_code_expires_at) <= new Date()) {
+    if (foundGroup.invite_code_expires_at && new Date(foundGroup.invite_code_expires_at) <= new Date()) {
       setError('This QR code has expired. Ask the group admin for a new one.')
       setIsLoadingPreview(false)
       return
     }
 
-    // Get member count
+    // Get active member count
     const { count } = await supabase
       .from('group_members')
       .select('id', { count: 'exact', head: true })
-      .eq('group_id', group.id)
+      .eq('group_id', foundGroup.id)
       .is('left_at', null)
     setPreviewMembers(count || 0)
 
     // Check if already member (active or past)
-    if (currentUser) {
-      const { data: existing } = await (supabase.from('group_members') as any)
+    if (userId) {
+      const { data: existing, error: memberErr } = await (supabase.from('group_members') as any)
         .select('id, left_at')
-        .eq('group_id', group.id)
-        .eq('user_id', currentUser)
+        .eq('group_id', foundGroup.id)
+        .eq('user_id', userId)
         .maybeSingle()
+      if (memberErr) {
+        console.error('Membership check error:', memberErr)
+      }
       if (existing) {
         if (!existing.left_at) {
           setAlreadyMember(true)
@@ -170,7 +145,7 @@ export default function ScannerPage() {
     }
 
     setIsLoadingPreview(false)
-  }, [currentUser, supabase])
+  }, [supabase])
 
   // Start camera scanner
   useEffect(() => {
@@ -259,7 +234,12 @@ export default function ScannerPage() {
 
   // Join group
   async function handleJoinGroup() {
-    if (!groupPreview || !currentUser) return
+    if (!groupPreview) return
+
+    // Get user directly to avoid stale state issues
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const userId = authUser?.id || currentUser
+    if (!userId) return
 
     setIsJoining(true)
     setError('')
@@ -275,6 +255,7 @@ export default function ScannerPage() {
         .update({ left_at: null })
         .eq('id', pastMembershipId)
       if (rejoinError) {
+        console.error('Rejoin error:', rejoinError)
         setError('Failed to rejoin group. Try again.')
         setIsJoining(false)
         return
@@ -300,7 +281,7 @@ export default function ScannerPage() {
       const { data: existingReq } = await (supabase.from('group_join_requests') as any)
         .select('id, status')
         .eq('group_id', groupPreview.id)
-        .eq('user_id', currentUser)
+        .eq('user_id', userId)
         .maybeSingle()
 
       if (existingReq) {
@@ -319,7 +300,7 @@ export default function ScannerPage() {
       // Create join request
       const { error: reqError } = await (supabase.from('group_join_requests') as any).insert({
         group_id: groupPreview.id,
-        user_id: currentUser,
+        user_id: userId,
       })
 
       if (reqError) {
@@ -330,7 +311,7 @@ export default function ScannerPage() {
 
       // Notify group admin
       try {
-        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', currentUser).single()
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single()
         await fetch('/api/notifications/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -350,7 +331,7 @@ export default function ScannerPage() {
 
     const { error } = await (supabase.from('group_members') as any).insert({
       group_id: groupPreview.id,
-      user_id: currentUser,
+      user_id: userId,
       role: 'member',
     })
 
@@ -530,9 +511,15 @@ export default function ScannerPage() {
               </div>
             )}
 
+            {isPastMember && !joinSuccess && (
+              <div className="bg-amber-500/10 text-amber-500 text-xs p-2.5 rounded-xl w-full text-center">
+                You previously left this group. Rejoin to see all activity again.
+              </div>
+            )}
+
             {joinSuccess ? (
               <div className="bg-primary/10 text-primary text-sm p-3 rounded-xl w-full text-center font-medium">
-                Joined successfully! Redirecting...
+                {isPastMember ? 'Rejoined successfully! Redirecting...' : 'Joined successfully! Redirecting...'}
               </div>
             ) : requestSent ? (
               <div className="bg-primary/10 text-primary text-sm p-3 rounded-xl w-full text-center font-medium">
