@@ -9,6 +9,7 @@ import Avatar from '@/components/ui/Avatar'
 import Button from '@/components/ui/Button'
 import CategoryIcon from '@/components/ui/CategoryIcon'
 import { ArrowUpRight, ArrowDownLeft, Users, UserPlus, Loader2, Check, X, Settings, User, Plane, Home, UtensilsCrossed, Car, Zap, Package, Plus } from 'lucide-react'
+import VideoLoader from '@/components/ui/VideoLoader'
 import { formatINR } from '@/lib/utils/settlement'
 import type { Profile, Group } from '@/lib/types/database'
 import Link from 'next/link'
@@ -155,6 +156,8 @@ export default function DashboardPage() {
     loadDashboard()
   }, [supabase])
 
+  if (isLoading) {
+    return <VideoLoader />
   }
 
   const netBalance = totalOwed - totalOwe
@@ -351,6 +354,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold">Your Groups</h2>
+              <Link href="/groups/new" className="p-0.5 rounded-md bg-primary/10 hover:bg-primary/20 active:scale-95 transition-all">
+                <Plus className="h-3.5 w-3.5 text-primary" />
+              </Link>
             </div>
             <Link href="/groups" className="text-xs text-primary font-medium">
               See all
