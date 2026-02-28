@@ -3162,10 +3162,20 @@ export default function GroupDetailPage() {
                   const blob = await qrSvgToBlob(svg)
                   const base64 = await blobToBase64(blob)
                   const fileName = `${group?.name || 'group'}-qr.png`
-                  if (Capacitor.isNativePlatform()) {
-                    const { Filesystem, Directory } = await import('@capacitor/filesystem')
-                    await Filesystem.writeFile({ path: `Download/${fileName}`, data: base64, directory: Directory.ExternalStorage, recursive: true })
-                    alert(`Saved to Downloads/${fileName}`)
+                  const cap = (window as any).Capacitor
+                  if (cap?.isNativePlatform?.()) {
+                    const Filesystem = cap.Plugins?.Filesystem
+                    if (Filesystem) {
+                      await Filesystem.writeFile({ path: fileName, data: base64, directory: 'CACHE', recursive: true })
+                      const uri = (await Filesystem.getUri({ path: fileName, directory: 'CACHE' })).uri
+                      // Use share to let user save to gallery/files
+                      const Share = cap.Plugins?.Share
+                      if (Share) {
+                        await Share.share({ title: fileName, url: uri, dialogTitle: 'Save QR Code' })
+                      } else {
+                        alert('QR saved to app cache')
+                      }
+                    }
                   } else {
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
@@ -3192,12 +3202,18 @@ export default function GroupDetailPage() {
                 try {
                   const blob = await qrSvgToBlob(svg)
                   const base64 = await blobToBase64(blob)
-                  if (Capacitor.isNativePlatform()) {
-                    const { Filesystem, Directory } = await import('@capacitor/filesystem')
-                    const { Share: CapShare } = await import('@capacitor/share')
-                    const tmpFile = `qr-share-${Date.now()}.png`
-                    const written = await Filesystem.writeFile({ path: tmpFile, data: base64, directory: Directory.Cache })
-                    await CapShare.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, url: written.uri, dialogTitle: 'Share QR Code' })
+                  const cap = (window as any).Capacitor
+                  if (cap?.isNativePlatform?.()) {
+                    const Filesystem = cap.Plugins?.Filesystem
+                    const Share = cap.Plugins?.Share
+                    if (Filesystem && Share) {
+                      const tmpFile = `qr-share-${Date.now()}.png`
+                      await Filesystem.writeFile({ path: tmpFile, data: base64, directory: 'CACHE', recursive: true })
+                      const uri = (await Filesystem.getUri({ path: tmpFile, directory: 'CACHE' })).uri
+                      await Share.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, url: uri, dialogTitle: 'Share QR Code' })
+                    } else {
+                      await navigator.clipboard.writeText(shareText)
+                    }
                   } else {
                     const file = new File([blob], `${group?.name || 'group'}-qr.png`, { type: 'image/png' })
                     if (navigator.canShare?.({ files: [file] })) {
