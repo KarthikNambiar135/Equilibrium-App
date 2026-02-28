@@ -3147,10 +3147,20 @@ export default function GroupDetailPage() {
                 if (!svg) return
                 try {
                   const blob = await qrSvgToBlob(svg)
+                  const file = new File([blob], `${group?.name || 'group'}-qr.png`, { type: 'image/png' })
+                  // Try native share with just the file (user picks "Save to Files/Gallery")
+                  // This works in Android WebView where <a download> doesn't
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({ files: [file] })
+                      return
+                    } catch {}
+                  }
+                  // Fallback: <a download> for desktop browsers
                   const url = URL.createObjectURL(blob)
                   const a = document.createElement('a')
                   a.href = url
-                  a.download = `${group?.name || 'group'}-qr.png`
+                  a.download = file.name
                   document.body.appendChild(a)
                   a.click()
                   document.body.removeChild(a)
@@ -3171,15 +3181,24 @@ export default function GroupDetailPage() {
                 try {
                   const blob = await qrSvgToBlob(svg)
                   const file = new File([blob], `${group?.name || 'group'}-qr.png`, { type: 'image/png' })
-                  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, files: [file] })
-                  } else if (navigator.share) {
-                    await navigator.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText })
-                  } else {
-                    navigator.clipboard.writeText(shareText)
+                  if (navigator.share) {
+                    // Try sharing image + text first, fall back to text-only
+                    try {
+                      await navigator.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, files: [file] })
+                      return
+                    } catch (e) {
+                      if ((e as Error)?.name === 'AbortError') return
+                    }
+                    try {
+                      await navigator.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText })
+                      return
+                    } catch (e) {
+                      if ((e as Error)?.name === 'AbortError') return
+                    }
                   }
+                  await navigator.clipboard.writeText(shareText)
                 } catch (e) {
-                  if ((e as Error)?.name !== 'AbortError') console.error('Share QR failed:', e)
+                  console.error('Share QR failed:', e)
                 }
               }}
             >
