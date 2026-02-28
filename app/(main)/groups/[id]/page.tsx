@@ -3160,22 +3160,15 @@ export default function GroupDetailPage() {
                 if (!svg) return
                 try {
                   const blob = await qrSvgToBlob(svg)
-                  const base64 = await blobToBase64(blob)
                   const fileName = `${group?.name || 'group'}-qr.png`
-                  const cap = (window as any).Capacitor
-                  if (cap?.isNativePlatform?.()) {
-                    const Filesystem = cap.Plugins?.Filesystem
-                    if (Filesystem) {
-                      await Filesystem.writeFile({ path: fileName, data: base64, directory: 'CACHE', recursive: true })
-                      const uri = (await Filesystem.getUri({ path: fileName, directory: 'CACHE' })).uri
-                      // Use share to let user save to gallery/files
-                      const Share = cap.Plugins?.Share
-                      if (Share) {
-                        await Share.share({ title: fileName, url: uri, dialogTitle: 'Save QR Code' })
-                      } else {
-                        alert('QR saved to app cache')
-                      }
-                    }
+                  const isNative = !!(window as any).Capacitor?.isNativePlatform?.()
+                  if (isNative) {
+                    const base64 = await blobToBase64(blob)
+                    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+                    const { Share } = await import('@capacitor/share')
+                    await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache, recursive: true })
+                    const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache })
+                    await Share.share({ title: 'Save QR Code', url: uri, dialogTitle: 'Save QR Code' })
                   } else {
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
@@ -3187,7 +3180,7 @@ export default function GroupDetailPage() {
                     setTimeout(() => URL.revokeObjectURL(url), 1000)
                   }
                 } catch (e) {
-                  console.error('Save QR failed:', e)
+                  if ((e as Error)?.name !== 'AbortError') console.error('Save QR failed:', e)
                 }
               }}
             >
@@ -3201,19 +3194,15 @@ export default function GroupDetailPage() {
                 const shareText = `Join my group "${group?.name}" on Equilibrium!\nInvite code: ${group?.invite_code}`
                 try {
                   const blob = await qrSvgToBlob(svg)
-                  const base64 = await blobToBase64(blob)
-                  const cap = (window as any).Capacitor
-                  if (cap?.isNativePlatform?.()) {
-                    const Filesystem = cap.Plugins?.Filesystem
-                    const Share = cap.Plugins?.Share
-                    if (Filesystem && Share) {
-                      const tmpFile = `qr-share-${Date.now()}.png`
-                      await Filesystem.writeFile({ path: tmpFile, data: base64, directory: 'CACHE', recursive: true })
-                      const uri = (await Filesystem.getUri({ path: tmpFile, directory: 'CACHE' })).uri
-                      await Share.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, url: uri, dialogTitle: 'Share QR Code' })
-                    } else {
-                      await navigator.clipboard.writeText(shareText)
-                    }
+                  const isNative = !!(window as any).Capacitor?.isNativePlatform?.()
+                  if (isNative) {
+                    const base64 = await blobToBase64(blob)
+                    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+                    const { Share } = await import('@capacitor/share')
+                    const tmpFile = `qr-share-${Date.now()}.png`
+                    await Filesystem.writeFile({ path: tmpFile, data: base64, directory: Directory.Cache, recursive: true })
+                    const { uri } = await Filesystem.getUri({ path: tmpFile, directory: Directory.Cache })
+                    await Share.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, url: uri, dialogTitle: 'Share QR Code' })
                   } else {
                     const file = new File([blob], `${group?.name || 'group'}-qr.png`, { type: 'image/png' })
                     if (navigator.canShare?.({ files: [file] })) {
