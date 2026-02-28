@@ -63,6 +63,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { Capacitor } from '@capacitor/core'
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon'
 import CategoryIcon from '@/components/ui/CategoryIcon'
 import { formatINR } from '@/lib/utils/settlement'
@@ -831,6 +832,18 @@ export default function GroupDetailPage() {
       }
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('SVG load failed')) }
       img.src = url
+    })
+  }
+
+  function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        resolve(result.split(',')[1])
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
     })
   }
 
@@ -3147,24 +3160,22 @@ export default function GroupDetailPage() {
                 if (!svg) return
                 try {
                   const blob = await qrSvgToBlob(svg)
-                  const file = new File([blob], `${group?.name || 'group'}-qr.png`, { type: 'image/png' })
-                  // Try native share with just the file (user picks "Save to Files/Gallery")
-                  // This works in Android WebView where <a download> doesn't
-                  if (navigator.share) {
-                    try {
-                      await navigator.share({ files: [file] })
-                      return
-                    } catch {}
+                  const base64 = await blobToBase64(blob)
+                  const fileName = `${group?.name || 'group'}-qr.png`
+                  if (Capacitor.isNativePlatform()) {
+                    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+                    await Filesystem.writeFile({ path: `Download/${fileName}`, data: base64, directory: Directory.ExternalStorage, recursive: true })
+                    alert(`Saved to Downloads/${fileName}`)
+                  } else {
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = fileName
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    setTimeout(() => URL.revokeObjectURL(url), 1000)
                   }
-                  // Fallback: <a download> for desktop browsers
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url
-                  a.download = file.name
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
-                  setTimeout(() => URL.revokeObjectURL(url), 1000)
                 } catch (e) {
                   console.error('Save QR failed:', e)
                 }
@@ -3180,25 +3191,25 @@ export default function GroupDetailPage() {
                 const shareText = `Join my group "${group?.name}" on Equilibrium!\nInvite code: ${group?.invite_code}`
                 try {
                   const blob = await qrSvgToBlob(svg)
-                  const file = new File([blob], `${group?.name || 'group'}-qr.png`, { type: 'image/png' })
-                  if (navigator.share) {
-                    // Try sharing image + text first, fall back to text-only
-                    try {
+                  const base64 = await blobToBase64(blob)
+                  if (Capacitor.isNativePlatform()) {
+                    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+                    const { Share: CapShare } = await import('@capacitor/share')
+                    const tmpFile = `qr-share-${Date.now()}.png`
+                    const written = await Filesystem.writeFile({ path: tmpFile, data: base64, directory: Directory.Cache })
+                    await CapShare.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, url: written.uri, dialogTitle: 'Share QR Code' })
+                  } else {
+                    const file = new File([blob], `${group?.name || 'group'}-qr.png`, { type: 'image/png' })
+                    if (navigator.canShare?.({ files: [file] })) {
                       await navigator.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText, files: [file] })
-                      return
-                    } catch (e) {
-                      if ((e as Error)?.name === 'AbortError') return
-                    }
-                    try {
+                    } else if (navigator.share) {
                       await navigator.share({ title: `Join ${group?.name} on Equilibrium`, text: shareText })
-                      return
-                    } catch (e) {
-                      if ((e as Error)?.name === 'AbortError') return
+                    } else {
+                      await navigator.clipboard.writeText(shareText)
                     }
                   }
-                  await navigator.clipboard.writeText(shareText)
                 } catch (e) {
-                  console.error('Share QR failed:', e)
+                  if ((e as Error)?.name !== 'AbortError') console.error('Share QR failed:', e)
                 }
               }}
             >
