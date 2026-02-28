@@ -1581,7 +1581,7 @@ export default function GroupDetailPage() {
                           <Pie data={categoryBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2}>
                             {categoryBreakdown.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
                           </Pie>
-                          <Tooltip formatter={(value: any) => formatINR(Number(value ?? 0))} contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '12px' }} />
+                          <Tooltip formatter={(value: any) => formatINR(Number(value ?? 0))} contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '12px', color: 'var(--foreground)' }} itemStyle={{ color: 'var(--foreground)' }} labelStyle={{ color: 'var(--foreground)' }} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
